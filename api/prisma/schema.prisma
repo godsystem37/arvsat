@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+model Offer {
+  id         String    @id @default(cuid())
+  title      String
+  price      Int
+  limit      Int
+  published  Boolean   @default(false)
+  fields     Json
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  bookings   Booking[]
+}
+
+model Booking {
+  id        String           @id @default(cuid())
+  token     String           @unique
+  code      String           @unique
+  offerId   String
+  offer     Offer            @relation(fields: [offerId], references: [id])
+  name      String
+  phone     String
+  email     String?
+  quantity  Int              @default(1)
+  answers   Json
+  status    String           @default("new")
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  comments  BookingComment[]
+
+  @@index([offerId])
+  @@index([status])
+}
+
+model BookingComment {
+  id        String   @id @default(cuid())
+  bookingId String
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  body      String
+  createdAt DateTime @default(now())
+}
