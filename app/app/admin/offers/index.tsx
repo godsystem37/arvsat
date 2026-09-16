@@ -1,7 +1,6 @@
-import { Link } from 'expo-router';
+import { Link, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
 import { Screen } from '../../../src/components/Screen';
 import { EmptyState, ErrorState } from '../../../src/components/States';
 import { api, ApiError } from '../../../src/lib/api';
