@@ -1,3 +1,5 @@
+import { assertEmail, assertIsoDate, toE164Ru } from '../validation/fields';
+
 export const FIELD_TYPES = [
   'text',
   'textarea',
@@ -17,6 +19,8 @@ export type OfferField = {
   type: FieldType;
   required: boolean;
   options?: string[];
+  placeholder?: string;
+  hint?: string;
 };
 
 export function isFieldType(value: string): value is FieldType {
@@ -57,6 +61,13 @@ export function sanitizeFields(input: unknown): OfferField[] {
       type,
       required: Boolean(item.required),
     };
+
+    const placeholder =
+      typeof item.placeholder === 'string' ? item.placeholder.trim() : '';
+    if (placeholder) field.placeholder = placeholder;
+
+    const hint = typeof item.hint === 'string' ? item.hint.trim() : '';
+    if (hint) field.hint = hint;
 
     if (type === 'select') {
       const options = Array.isArray(item.options)
@@ -106,8 +117,8 @@ export function validateAnswers(
 
     if (field.type === 'number') {
       const num = typeof value === 'number' ? value : Number(value);
-      if (!Number.isFinite(num)) {
-        throw new Error(`Поле «${field.label}» должно быть числом`);
+      if (!Number.isInteger(num) || num < 0) {
+        throw new Error(`Поле «${field.label}» должно быть целым числом`);
       }
       result[field.id] = num;
       continue;
@@ -122,14 +133,36 @@ export function validateAnswers(
       continue;
     }
 
-    if (field.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)) {
-      throw new Error(`Поле «${field.label}» — некорректный email`);
+    if (field.type === 'email') {
+      result[field.id] = assertEmail(text);
+      continue;
+    }
+
+    if (field.type === 'phone') {
+      const phone = toE164Ru(text);
+      if (!phone) {
+        throw new Error(`Поле «${field.label}» — телефон в формате +7…`);
+      }
+      result[field.id] = phone;
+      continue;
+    }
+
+    if (field.type === 'date') {
+      result[field.id] = assertIsoDate(text, field.label);
+      continue;
     }
 
     if (field.type === 'select' && field.options && field.options.length > 0) {
       if (!field.options.includes(text)) {
         throw new Error(`Выберите вариант в поле «${field.label}»`);
       }
+    }
+
+    if (field.type === 'textarea' && text.length > 2000) {
+      throw new Error(`Поле «${field.label}» слишком длинное`);
+    }
+    if (field.type === 'text' && text.length > 200) {
+      throw new Error(`Поле «${field.label}» слишком длинное`);
     }
 
     result[field.id] = text;

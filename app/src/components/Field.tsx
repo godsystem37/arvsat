@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { Text, TextInput, TextInputProps, View } from 'react-native';
+import { useTheme } from '../theme/ThemeProvider';
 
 type Props = TextInputProps & {
   label: string;
@@ -9,13 +10,14 @@ type Props = TextInputProps & {
 };
 
 export function Field({ label, hint, error, multiline, ...input }: Props) {
+  const { colors } = useTheme();
   return (
     <View className="gap-1.5">
       <Text className="text-sm font-medium text-ink">{label}</Text>
       <TextInput
         {...input}
         multiline={multiline}
-        placeholderTextColor="#8A8174"
+        placeholderTextColor={colors.muted}
         className={`rounded-2xl border bg-paper px-4 text-base text-ink ${
           multiline ? 'min-h-[96px] py-3' : 'h-12'
         } ${error ? 'border-danger' : 'border-line'}`}

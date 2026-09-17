@@ -23,7 +23,7 @@ export function ErrorState({
   text: string;
 }) {
   return (
-    <View className="rounded-3xl border border-[#F0D4C8] bg-[#FFF6F1] px-5 py-6">
+    <View className="rounded-3xl border border-danger bg-danger-soft px-5 py-6">
       <Text className="text-lg font-semibold text-danger">{title ?? 'Не получилось'}</Text>
       <Text className="mt-2 text-base leading-6 text-ink">{text}</Text>
     </View>

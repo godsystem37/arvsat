@@ -30,7 +30,7 @@ export default function NewOfferScreen() {
 
   return (
     <OfferEditor
-      title="Новый оффер"
+      title="Новое событие"
       saving={saving}
       error={error}
       onSubmit={save}

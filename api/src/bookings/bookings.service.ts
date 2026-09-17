@@ -10,9 +10,11 @@ import { randomBytes } from 'crypto';
 import { MailService } from '../mail/mail.service';
 import { parseFields, validateAnswers } from '../offers/field-schema';
 import { PrismaService } from '../prisma/prisma.service';
+import { assertEmail, assertFio, assertPhone } from '../validation/fields';
 import { CreateBookingDto } from './dto/create-booking.dto';
 
-const ACTIVE_STATUSES = ['new', 'confirmed', 'refund_requested'];
+const LIVE_STATUSES = ['new', 'confirmed', 'refund_requested'];
+const HISTORY_STATUSES = ['done', 'cancelled'];
 
 function makeToken() {
   return randomBytes(24).toString('hex');
@@ -84,12 +86,15 @@ export class BookingsService {
 
   async create(offerId: string, dto: CreateBookingDto) {
     const quantity = dto.quantity ?? 1;
-    const name = dto.name.trim();
-    const phone = dto.phone.trim();
-    const email = dto.email?.trim().toLowerCase() || null;
-
-    if (!name || !phone) {
-      throw new BadRequestException('Укажите имя и телефон');
+    let name: string;
+    let phone: string;
+    let email: string | null;
+    try {
+      name = assertFio(dto.name);
+      phone = assertPhone(dto.phone);
+      email = assertEmail(dto.email);
+    } catch (err) {
+      throw new BadRequestException(err instanceof Error ? err.message : 'Проверьте поля формы');
     }
 
     const booking = await this.prisma.$transaction(async (tx) => {
@@ -167,8 +172,10 @@ export class BookingsService {
     if (!booking) {
       throw new NotFoundException('Заявка не найдена');
     }
-    if (booking.status === 'cancelled') {
-      throw new BadRequestException('Заявка уже отменена');
+    if (booking.status === 'cancelled' || booking.status === 'done') {
+      throw new BadRequestException(
+        booking.status === 'done' ? 'Заявка уже выполнена' : 'Заявка уже отменена',
+      );
     }
     const updated = await this.prisma.booking.update({
       where: { id: booking.id },
@@ -189,6 +196,9 @@ export class BookingsService {
     if (booking.status === 'cancelled') {
       throw new BadRequestException('Отменённую заявку нельзя вернуть');
     }
+    if (booking.status === 'done') {
+      throw new BadRequestException('Выполненную заявку уже нельзя вернуть с этой ссылки');
+    }
     if (booking.status === 'refund_requested') {
       return this.serialize(booking);
     }
@@ -200,10 +210,21 @@ export class BookingsService {
     return this.serialize(updated);
   }
 
-  async listAdmin(query: { offerId?: string; status?: string; q?: string }) {
+  async listAdmin(query: {
+    offerId?: string;
+    status?: string;
+    q?: string;
+    scope?: string;
+  }) {
     const where: Prisma.BookingWhereInput = {};
     if (query.offerId) where.offerId = query.offerId;
-    if (query.status) where.status = query.status;
+    if (query.status) {
+      where.status = query.status;
+    } else if (query.scope === 'history') {
+      where.status = { in: HISTORY_STATUSES };
+    } else if (query.scope !== 'all' && !query.q?.trim()) {
+      where.status = { in: LIVE_STATUSES };
+    }
     if (query.q?.trim()) {
       const q = query.q.trim();
       where.OR = [
@@ -246,6 +267,25 @@ export class BookingsService {
     return this.serialize(updated);
   }
 
+  async updateStatusMany(ids: string[], status: string) {
+    const unique = [...new Set(ids.map((id) => id.trim()).filter(Boolean))];
+    if (unique.length === 0) {
+      throw new BadRequestException('Не выбраны заявки');
+    }
+    const found = await this.prisma.booking.findMany({
+      where: { id: { in: unique } },
+      select: { id: true },
+    });
+    if (found.length !== unique.length) {
+      throw new NotFoundException('Часть заявок не найдена');
+    }
+    await this.prisma.booking.updateMany({
+      where: { id: { in: unique } },
+      data: { status },
+    });
+    return { ok: true, count: unique.length, status };
+  }
+
   async addComment(id: string, body: string) {
     const booking = await this.prisma.booking.findUnique({ where: { id } });
     if (!booking) {
@@ -261,7 +301,36 @@ export class BookingsService {
     return this.getAdmin(id);
   }
 
-  activeStatuses() {
-    return ACTIVE_STATUSES;
+  async updateComment(id: string, commentId: string, body: string) {
+    const text = body.trim();
+    if (!text) {
+      throw new BadRequestException('Комментарий пустой');
+    }
+    const comment = await this.prisma.bookingComment.findUnique({
+      where: { id: commentId },
+    });
+    if (!comment || comment.bookingId !== id) {
+      throw new NotFoundException('Заметка не найдена');
+    }
+    await this.prisma.bookingComment.update({
+      where: { id: commentId },
+      data: { body: text },
+    });
+    return this.getAdmin(id);
+  }
+
+  async removeComment(id: string, commentId: string) {
+    const comment = await this.prisma.bookingComment.findUnique({
+      where: { id: commentId },
+    });
+    if (!comment || comment.bookingId !== id) {
+      throw new NotFoundException('Заметка не найдена');
+    }
+    await this.prisma.bookingComment.delete({ where: { id: commentId } });
+    return this.getAdmin(id);
+  }
+
+  liveStatuses() {
+    return LIVE_STATUSES;
   }
 }

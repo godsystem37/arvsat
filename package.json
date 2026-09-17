@@ -1,0 +1,13 @@
+{
+  "name": "bookflow",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node scripts/up.mjs",
+    "up": "node scripts/up.mjs",
+    "web": "npm --prefix app run web",
+    "expo": "npm --prefix app start"
+  }
+}

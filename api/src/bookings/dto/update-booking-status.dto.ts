@@ -3,8 +3,9 @@ import { IsIn, IsString } from 'class-validator';
 export const BOOKING_STATUSES = [
   'new',
   'confirmed',
-  'cancelled',
   'refund_requested',
+  'done',
+  'cancelled',
 ] as const;
 
 export class UpdateBookingStatusDto {

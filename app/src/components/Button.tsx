@@ -1,4 +1,5 @@
 import { ActivityIndicator, Pressable, Text } from 'react-native';
+import { useTheme } from '../theme/ThemeProvider';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
@@ -36,6 +37,7 @@ export function Button({
   loading,
   variant = 'primary',
 }: Props) {
+  const { colors } = useTheme();
   const look = styles[variant];
   return (
     <Pressable
@@ -46,7 +48,7 @@ export function Button({
       }`}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'ghost' ? '#1C1915' : '#fff'} />
+        <ActivityIndicator color={variant === 'ghost' ? colors.ink : '#fff'} />
       ) : (
         <Text className={`text-base font-semibold ${look.text}`}>{title}</Text>
       )}

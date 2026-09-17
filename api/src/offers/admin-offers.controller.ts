@@ -1,10 +1,12 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -18,8 +20,9 @@ export class AdminOffersController {
   constructor(private readonly offers: OffersService) {}
 
   @Get()
-  list() {
-    return this.offers.listAdmin();
+  list(@Query('archived') archived?: string) {
+    if (archived === 'all') return this.offers.listAdmin('all');
+    return this.offers.listAdmin(archived === '1' || archived === 'true');
   }
 
   @Get(':id')
@@ -35,5 +38,20 @@ export class AdminOffersController {
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateOfferDto) {
     return this.offers.update(id, dto);
+  }
+
+  @Post(':id/archive')
+  archive(@Param('id') id: string) {
+    return this.offers.archive(id);
+  }
+
+  @Post(':id/unarchive')
+  unarchive(@Param('id') id: string) {
+    return this.offers.unarchive(id);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.offers.remove(id);
   }
 }

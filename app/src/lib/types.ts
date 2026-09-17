@@ -17,6 +17,8 @@ export type OfferField = {
   type: FieldType;
   required: boolean;
   options?: string[];
+  placeholder?: string;
+  hint?: string;
 };
 
 export type Offer = {
@@ -25,6 +27,7 @@ export type Offer = {
   price: number;
   limit: number;
   published: boolean;
+  archived?: boolean;
   fields: OfferField[];
   remaining: number;
   createdAt: string;
@@ -34,8 +37,9 @@ export type Offer = {
 export type BookingStatus =
   | 'new'
   | 'confirmed'
-  | 'cancelled'
-  | 'refund_requested';
+  | 'refund_requested'
+  | 'done'
+  | 'cancelled';
 
 export type BookingComment = {
   id: string;
@@ -68,8 +72,9 @@ export type Booking = {
 export const STATUS_LABEL: Record<BookingStatus, string> = {
   new: 'Новая',
   confirmed: 'Подтверждена',
-  cancelled: 'Отменена',
   refund_requested: 'Возврат',
+  done: 'Выполнено',
+  cancelled: 'Отменена',
 };
 
 export const FIELD_TYPE_LABEL: Record<FieldType, string> = {

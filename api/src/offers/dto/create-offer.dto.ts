@@ -32,6 +32,14 @@ export class OfferFieldDto {
   @IsArray()
   @IsString({ each: true })
   options?: string[];
+
+  @IsOptional()
+  @IsString()
+  placeholder?: string;
+
+  @IsOptional()
+  @IsString()
+  hint?: string;
 }
 
 export class CreateOfferDto {

@@ -14,32 +14,32 @@
 
 ## Запуск локально
 
-Нужны Node 20+ и два терминала.
+Нужен Node 20+. Из корня репозитория:
 
 ```bash
-# API
-cd api
-cp .env.example .env   # если файла ещё нет
-npm install
-npx prisma migrate dev
-npx prisma db seed
-npm run start:dev
+npm start
 ```
 
-API слушает `http://127.0.0.1:43128`.
+Команда сама создаст `api/.env`, поставит зависимости, прогонит Prisma и поднимет API и сайт.
+
+Expo живёт в `app/`. Из корня не вызывайте `npx expo start` — там нет `expo`. Только:
 
 ```bash
-# Сайт
-cd app
-npm install
-npm run web
+npm start          # API + сайт
+npm run web        # только Expo web
+cd app && npm run web
 ```
 
-Сайт: `http://127.0.0.1:43127`.
+- сайт: `http://127.0.0.1:43127`
+- вход: `http://127.0.0.1:43127/login`
+- админ: `http://127.0.0.1:43127/admin/login` — `admin@sbor.local` / `admin123`
+- API: `http://127.0.0.1:43128`
 
-Админ: `admin@sbor.local` / `admin123`.
+Остановка: Ctrl+C.
 
-На телефоне: `cd app && npx expo start`, затем камера на QR в Expo Go. В `app/.env` поставьте `EXPO_PUBLIC_API_URL` на IP компьютера в сети, не localhost.
+На телефоне не сканируйте QR камерой iPhone — Expo даёт ссылку `exp://`, камера пишет «Пригодные данные не найдены».
+
+Тот же Wi‑Fi, в Safari откройте `http://IP-МАКА:43127` (IP печатает `npm start`). Либо откройте **Expo Go** и сканируйте QR уже внутри него.
 
 ## Письма
 

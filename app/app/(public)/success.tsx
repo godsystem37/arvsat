@@ -2,9 +2,8 @@ import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
-import { BrandHeader } from '../src/components/BrandHeader';
-import { Button } from '../src/components/Button';
-import { Screen } from '../src/components/Screen';
+import { Button } from '../../src/components/Button';
+import { Screen } from '../../src/components/Screen';
 
 export default function SuccessScreen() {
   const router = useRouter();
@@ -23,8 +22,11 @@ export default function SuccessScreen() {
   }
 
   return (
-    <Screen>
-      <BrandHeader subtitle="Заявка принята. Сохраните ссылку — по ней можно отменить или попросить возврат." />
+    <Screen inShell>
+      <Text className="text-2xl font-semibold text-ink">Заявка принята</Text>
+      <Text className="mt-1 mb-6 text-muted">
+        Сохраните ссылку — по ней можно отменить или попросить возврат.
+      </Text>
       <View className="rounded-3xl border border-line bg-paper p-5">
         <Text className="text-sm uppercase tracking-wide text-muted">Код заявки</Text>
         <Text className="mt-1 text-3xl font-semibold text-ink">{code ?? '—'}</Text>
@@ -45,7 +47,7 @@ export default function SuccessScreen() {
               onPress={() => router.push(`/b/${token}`)}
             />
           ) : null}
-          <Button title="На главную" variant="ghost" onPress={() => router.push('/')} />
+          <Button title="К событиям" variant="ghost" onPress={() => router.push('/')} />
         </View>
       </View>
     </Screen>

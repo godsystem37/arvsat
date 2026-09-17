@@ -1,9 +1,12 @@
-import { Link, Redirect, Slot, usePathname, useRouter } from 'expo-router';
+import { Redirect, Slot, usePathname, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { clearAdminToken, getAdminToken } from '../../src/lib/auth';
+import { ThemeToggle } from '../../src/components/ThemeToggle';
 import { api } from '../../src/lib/api';
+import { clearAdminToken, getAdminToken } from '../../src/lib/auth';
+import { AppShell } from '../../src/shell/AppShell';
+import { ADMIN_NAV } from '../../src/shell/nav';
 
 export default function AdminLayout() {
   const pathname = usePathname();
@@ -65,30 +68,19 @@ export default function AdminLayout() {
   }
 
   return (
-    <View className="flex-1 bg-cream">
-      <SafeAreaView edges={['top']} className="border-b border-line bg-paper">
-        <View className="flex-row items-center justify-between px-5 py-3">
-          <Link href="/">
-            <Text className="text-xl font-semibold text-ink">Сбор</Text>
-          </Link>
-          <View className="flex-row items-center gap-4">
-            <Nav href="/admin/offers" label="Офферы" active={pathname.includes('/offers')} />
-            <Nav href="/admin/people" label="Люди" active={pathname.includes('/people')} />
-            <Pressable onPress={logout}>
-              <Text className="text-sm text-muted">Выйти</Text>
-            </Pressable>
-          </View>
+    <AppShell
+      brand="Админ"
+      homeHref="/admin"
+      items={ADMIN_NAV}
+      pathname={pathname}
+      footer={
+        <View className="flex-row items-center gap-4">
+          <ThemeToggle />
+          <Pressable onPress={logout}>
+            <Text className="text-sm text-muted">Выйти</Text>
+          </Pressable>
         </View>
-      </SafeAreaView>
-      <Slot />
-    </View>
-  );
-}
-
-function Nav({ href, label, active }: { href: '/admin/offers' | '/admin/people'; label: string; active: boolean }) {
-  return (
-    <Link href={href}>
-      <Text className={`text-sm ${active ? 'font-semibold text-forest' : 'text-muted'}`}>{label}</Text>
-    </Link>
+      }
+    />
   );
 }

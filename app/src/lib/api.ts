@@ -1,8 +1,20 @@
+import { Platform } from 'react-native';
 import { clearAdminToken, getAdminToken } from './auth';
 import { Booking, Offer } from './types';
 
-const API_URL =
-  process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, '') ?? 'http://127.0.0.1:43128';
+function resolveApiUrl() {
+  const fromEnv = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, '');
+  if (fromEnv) return fromEnv;
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host && host !== 'localhost' && host !== '127.0.0.1') {
+      return `http://${host}:43128`;
+    }
+  }
+  return 'http://127.0.0.1:43128';
+}
+
+const API_URL = resolveApiUrl();
 
 export class ApiError extends Error {
   status: number;
@@ -82,7 +94,13 @@ export const api = {
     }),
   me: () =>
     request<{ id: string; email: string }>('/auth/me', { auth: true }),
-  adminOffers: () => request<Offer[]>('/admin/offers', { auth: true }),
+  adminOffers: (params?: { archived?: boolean | 'all' }) => {
+    const query = new URLSearchParams();
+    if (params?.archived === 'all') query.set('archived', 'all');
+    else if (params?.archived === true) query.set('archived', '1');
+    const suffix = query.toString() ? `?${query.toString()}` : '';
+    return request<Offer[]>(`/admin/offers${suffix}`, { auth: true });
+  },
   adminOffer: (id: string) => request<Offer>(`/admin/offers/${id}`, { auth: true }),
   createOffer: (body: Partial<Offer> & { title: string; price: number; limit: number }) =>
     request<Offer>('/admin/offers', {
@@ -96,11 +114,32 @@ export const api = {
       auth: true,
       body: JSON.stringify(body),
     }),
-  adminBookings: (params: { offerId?: string; status?: string; q?: string }) => {
+  deleteOffer: (id: string) =>
+    request<{ ok: true }>(`/admin/offers/${id}`, {
+      method: 'DELETE',
+      auth: true,
+    }),
+  archiveOffer: (id: string) =>
+    request<Offer>(`/admin/offers/${id}/archive`, {
+      method: 'POST',
+      auth: true,
+    }),
+  unarchiveOffer: (id: string) =>
+    request<Offer>(`/admin/offers/${id}/unarchive`, {
+      method: 'POST',
+      auth: true,
+    }),
+  adminBookings: (params: {
+    offerId?: string;
+    status?: string;
+    q?: string;
+    scope?: 'live' | 'history' | 'all';
+  }) => {
     const query = new URLSearchParams();
     if (params.offerId) query.set('offerId', params.offerId);
     if (params.status) query.set('status', params.status);
     if (params.q) query.set('q', params.q);
+    if (params.scope) query.set('scope', params.scope);
     const suffix = query.toString() ? `?${query.toString()}` : '';
     return request<Booking[]>(`/admin/bookings${suffix}`, { auth: true });
   },
@@ -112,10 +151,27 @@ export const api = {
       auth: true,
       body: JSON.stringify({ status }),
     }),
+  updateBookingsStatus: (ids: string[], status: string) =>
+    request<{ ok: true; count: number; status: string }>('/admin/bookings/bulk', {
+      method: 'PATCH',
+      auth: true,
+      body: JSON.stringify({ ids, status }),
+    }),
   addComment: (id: string, body: string) =>
     request<Booking>(`/admin/bookings/${id}/comments`, {
       method: 'POST',
       auth: true,
       body: JSON.stringify({ body }),
+    }),
+  updateComment: (bookingId: string, commentId: string, body: string) =>
+    request<Booking>(`/admin/bookings/${bookingId}/comments/${commentId}`, {
+      method: 'PATCH',
+      auth: true,
+      body: JSON.stringify({ body }),
+    }),
+  deleteComment: (bookingId: string, commentId: string) =>
+    request<Booking>(`/admin/bookings/${bookingId}/comments/${commentId}`, {
+      method: 'DELETE',
+      auth: true,
     }),
 };

@@ -1,16 +1,16 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
-import { BrandHeader } from '../../src/components/BrandHeader';
-import { Button } from '../../src/components/Button';
-import { Screen } from '../../src/components/Screen';
-import { StatusBadge } from '../../src/components/StatusBadge';
-import { ErrorState } from '../../src/components/States';
-import { api, ApiError } from '../../src/lib/api';
-import { formatAnswer, formatDate, formatPrice } from '../../src/lib/format';
-import { Booking } from '../../src/lib/types';
+import { Button } from '../../../src/components/Button';
+import { Screen } from '../../../src/components/Screen';
+import { StatusBadge } from '../../../src/components/StatusBadge';
+import { ErrorState } from '../../../src/components/States';
+import { api, ApiError } from '../../../src/lib/api';
+import { formatAnswer, formatDate, formatPrice } from '../../../src/lib/format';
+import { Booking } from '../../../src/lib/types';
 
 export default function BookingScreen() {
+  const router = useRouter();
   const { token } = useLocalSearchParams<{ token: string }>();
   const [booking, setBooking] = useState<Booking | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -52,11 +52,12 @@ export default function BookingScreen() {
     }
   }
 
-  const closed = booking?.status === 'cancelled';
+  const closed = booking?.status === 'cancelled' || booking?.status === 'done';
 
   return (
-    <Screen>
-      <BrandHeader subtitle="Ваша заявка. Ссылкой можно делиться только с собой." />
+    <Screen inShell>
+      <Text className="text-2xl font-semibold text-ink">Ваша заявка</Text>
+      <Text className="mt-1 mb-6 text-muted">Ссылкой можно делиться только с собой.</Text>
 
       {loading ? (
         <Text className="text-muted">Ищем заявку…</Text>
@@ -79,7 +80,7 @@ export default function BookingScreen() {
 
           <View className="rounded-3xl border border-line bg-paper p-5">
             <Text className="text-lg font-semibold text-ink">Данные</Text>
-            <Row label="Имя" value={booking.name} />
+            <Row label="ФИО" value={booking.name} />
             <Row label="Телефон" value={booking.phone} />
             <Row label="Почта" value={booking.email ?? '—'} />
             {booking.offer.fields.map((field) => (
@@ -112,9 +113,13 @@ export default function BookingScreen() {
                 ждёте их обратно. Оплату в MVP подтверждаем вручную.
               </Text>
             </View>
+          ) : booking.status === 'done' ? (
+            <Text className="text-base text-muted">Заявка выполнена. Если что-то не так — напишите организатору.</Text>
           ) : (
             <Text className="text-base text-muted">Заявка отменена, место снова в лимите.</Text>
           )}
+
+          <Button title="К событиям" variant="ghost" onPress={() => router.push('/')} />
         </View>
       )}
     </Screen>

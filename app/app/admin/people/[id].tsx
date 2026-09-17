@@ -1,6 +1,6 @@
-import { useLocalSearchParams } from 'expo-router';
+import { Link, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { Button } from '../../../src/components/Button';
 import { Field } from '../../../src/components/Field';
 import { Screen } from '../../../src/components/Screen';
@@ -14,6 +14,7 @@ const STATUSES: BookingStatus[] = [
   'new',
   'confirmed',
   'refund_requested',
+  'done',
   'cancelled',
 ];
 
@@ -22,6 +23,8 @@ export default function PersonScreen() {
   const [booking, setBooking] = useState<Booking | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [comment, setComment] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingBody, setEditingBody] = useState('');
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -61,9 +64,44 @@ export default function PersonScreen() {
     }
   }
 
+  async function saveComment() {
+    if (!id || !editingId || !editingBody.trim()) return;
+    setBusy(true);
+    setError(null);
+    try {
+      setBooking(await api.updateComment(id, editingId, editingBody.trim()));
+      setEditingId(null);
+      setEditingBody('');
+    } catch (err: unknown) {
+      setError(err instanceof ApiError ? err.message : 'Не удалось сохранить заметку');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removeComment(commentId: string) {
+    if (!id) return;
+    const ok =
+      typeof window !== 'undefined' ? window.confirm('Удалить заметку?') : true;
+    if (!ok) return;
+    setBusy(true);
+    setError(null);
+    try {
+      setBooking(await api.deleteComment(id, commentId));
+      if (editingId === commentId) {
+        setEditingId(null);
+        setEditingBody('');
+      }
+    } catch (err: unknown) {
+      setError(err instanceof ApiError ? err.message : 'Не удалось удалить заметку');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (!booking && error) {
     return (
-      <Screen>
+      <Screen inShell>
         <ErrorState text={error} />
       </Screen>
     );
@@ -71,19 +109,22 @@ export default function PersonScreen() {
 
   if (!booking) {
     return (
-      <Screen>
+      <Screen inShell>
         <Text className="text-muted">Открываем карточку…</Text>
       </Screen>
     );
   }
 
   return (
-    <Screen>
+    <Screen inShell>
       <StatusBadge status={booking.status} />
       <Text className="mt-3 text-2xl font-semibold text-ink">{booking.name}</Text>
-      <Text className="mt-1 text-muted">
-        {booking.offer.title} · {booking.code}
-      </Text>
+      <Link href={`/admin/offers/${booking.offer.id}`}>
+        <Text className="mt-1 text-base text-forest">
+          {booking.offer.title} · править событие
+        </Text>
+      </Link>
+      <Text className="mt-1 text-muted">{booking.code}</Text>
       <Text className="mt-1 text-sm text-muted">{formatDate(booking.createdAt)}</Text>
 
       <View className="mt-6 rounded-3xl border border-line bg-paper p-5">
@@ -114,14 +155,51 @@ export default function PersonScreen() {
       </View>
 
       <Text className="mt-8 text-lg font-semibold text-ink">Заметки</Text>
-      {booking.comments.length === 0 ? (
+      {(booking.comments ?? []).length === 0 ? (
         <Text className="mt-2 text-muted">Пока пусто — запишите, кто звонил и что решили.</Text>
       ) : (
         <View className="mt-3 gap-2">
-          {booking.comments.map((item) => (
-            <View key={item.id} className="rounded-2xl bg-paper px-4 py-3">
+          {(booking.comments ?? []).map((item) => (
+            <View key={item.id} className="rounded-2xl border border-line bg-paper px-4 py-3">
               <Text className="text-xs text-muted">{formatDate(item.createdAt)}</Text>
-              <Text className="mt-1 text-base text-ink">{item.body}</Text>
+              {editingId === item.id ? (
+                <View className="mt-2 gap-2">
+                  <Field
+                    label="Текст заметки"
+                    value={editingBody}
+                    onChangeText={setEditingBody}
+                    multiline
+                  />
+                  <View className="flex-row flex-wrap gap-2">
+                    <Button title="Сохранить" variant="secondary" onPress={saveComment} loading={busy} />
+                    <Button
+                      title="Отмена"
+                      variant="ghost"
+                      onPress={() => {
+                        setEditingId(null);
+                        setEditingBody('');
+                      }}
+                    />
+                  </View>
+                </View>
+              ) : (
+                <>
+                  <Text className="mt-1 text-base text-ink">{item.body}</Text>
+                  <View className="mt-2 flex-row gap-3">
+                    <Pressable
+                      onPress={() => {
+                        setEditingId(item.id);
+                        setEditingBody(item.body);
+                      }}
+                    >
+                      <Text className="text-sm text-forest">Изменить</Text>
+                    </Pressable>
+                    <Pressable onPress={() => removeComment(item.id)}>
+                      <Text className="text-sm text-danger">Удалить</Text>
+                    </Pressable>
+                  </View>
+                </>
+              )}
             </View>
           ))}
         </View>
